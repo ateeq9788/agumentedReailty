@@ -1,0 +1,51 @@
+buildscript {
+    ext.kotlin_version = '1.9.0'
+    repositories {
+        google()         // Make sure this line is present
+        mavenCentral()   // Make sure this line is present
+    }
+    dependencies {
+        // Correct place to add the classpath
+        classpath 'com.google.gms:google-services:4.4.2'
+        classpath 'com.android.tools.build:gradle:8.0.2'// The correct way to add Google services
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    //ext.kotlin_version = "1.8.22"
+    repositories {
+        google()
+        mavenCentral()
+    }
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17" // Ensure Kotlin targets JVM 17
+        }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
+ext{
+    compileSdkVersion = 34
+    minSdkVersion = 21
+    targetSdkVersion = 34
+    kotlin_version = '2.0.20'
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core-ktx:1.6.0'
+    }
+}
+
