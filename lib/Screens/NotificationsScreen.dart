@@ -42,7 +42,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }).toList();
     } catch (e) {
       print('Error fetching notifications: $e');
-      // You can show a message to the user or handle the error appropriately
     }
 
     setState(() {
@@ -63,17 +62,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         print('No unread notifications found.');
         return;
       }
-
-      // Start a batch
       WriteBatch batch = FirebaseFirestore.instance.batch();
-
-      // Iterate through all documents and add them to the batch for updating
       for (var doc in querySnapshot.docs) {
-        // Update 'isRead' to true
         batch.update(doc.reference, {'isRead': true});
       }
-
-      // Commit the batch update
       await batch.commit();
       print('All notifications marked as read successfully.');
     } catch (e) {

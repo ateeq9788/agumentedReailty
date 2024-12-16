@@ -160,10 +160,10 @@ class _AddproductonstorescreenState extends State<Addproductonstorescreen> {
                     Expanded(child: ElevatedButton(
                       onPressed: (){
 
-                        if (fileWithoutbg == null){
-                          validationAlert('Submission Error!', 'Please Select Product Image.');
-                          return;
-                        }
+                        // if (fileWithoutbg == null){
+                        //   validationAlert('Submission Error!', 'Please Select Product Image.');
+                        //   return;
+                        // }
                         if (selectedCategory == null){
                           validationAlert('Submission Error!', 'Please Select Product Category.');
                           return;
