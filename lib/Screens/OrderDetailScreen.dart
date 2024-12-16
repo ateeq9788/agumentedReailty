@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:agumented_reality_shopping_store/CommonClasses/Order.dart';
-import 'package:agumented_reality_shopping_store/CommonClasses/Order.dart';
 import 'package:intl/intl.dart';
 
 

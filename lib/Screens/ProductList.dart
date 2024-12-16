@@ -20,6 +20,7 @@ import 'package:agumented_reality_shopping_store/Screens/Profile.dart';
 import 'package:agumented_reality_shopping_store/Screens/OrderListScreen.dart';
 import 'package:agumented_reality_shopping_store/Screens/LaunchScreen.dart';
 import 'package:agumented_reality_shopping_store/Screens/NotificationsScreen.dart';
+import 'package:agumented_reality_shopping_store/Screens/AdminScreens/AdminNotifications.dart';
 
 class Productlist extends StatefulWidget {
   const Productlist({super.key});
@@ -44,6 +45,7 @@ class _ProductlistState extends State<Productlist> {
   String? useremail;
   bool? isAdmin;
   bool isNewNotification = false;
+  bool isNewNotificationOfAdmin = false;
 
   @override
   void initState() {
@@ -142,6 +144,80 @@ class _ProductlistState extends State<Productlist> {
                 ],
               ),
             )
+          ],
+          if((isAdmin ?? false) == true) ...[
+            Stack(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              AdminOrderNotificationScreen()),
+                    ).then((_){
+                      fetchDataFromfireStore();
+                    });
+                  },
+                ),
+                if(isNewNotificationOfAdmin)
+                  Positioned(
+                    right: 13,
+                    top: 12,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Padding(
+            //   padding: EdgeInsets.only(right: 15),
+            //   child: Stack(
+            //     children: [
+            //       Container(
+            //         height: 30,
+            //         width: 30,
+            //         padding: EdgeInsets.all(5),
+            //         child: GestureDetector(
+            //           onTap: () {
+            //             Navigator.push(
+            //               context,
+            //               MaterialPageRoute(
+            //                   builder: (context) =>
+            //                       CartList(userId: userid ?? '')),
+            //             ).then((_) {
+            //               fetchDataFromfireStore();
+            //             });
+            //           },
+            //           child: Image.asset(
+            //             'assets/images/cart.png',
+            //             height: 25,
+            //             width: 25,
+            //           ),
+            //         ),
+            //       ),
+            //       if (cartItemIds.isNotEmpty)
+            //         Positioned(
+            //           right: 2,
+            //           top: 2,
+            //           child: Container(
+            //             width: 9,
+            //             height: 9,
+            //             decoration: BoxDecoration(
+            //               color: Colors.red,
+            //               shape: BoxShape.circle,
+            //             ),
+            //           ),
+            //         ),
+            //     ],
+            //   ),
+            // )
           ]
         ],
       ),
@@ -445,9 +521,10 @@ class _ProductlistState extends State<Productlist> {
                                               child: Column(
                                                 children: [
                                                   Text('Stock',style: TextStyle(fontWeight: FontWeight.bold),),
-                                                  Text('${product.stock ?? 0}',style: TextStyle(fontWeight: FontWeight.bold),)
+                                                  Text(product.stock <= 0 ? 'Out of stock' : '${product.stock ?? 0}',style: TextStyle(fontWeight: FontWeight.bold),)
                                                 ],
-                                              ))
+                                              )
+                                           )
                                         ],
                                       ),
                                     ),
@@ -674,6 +751,7 @@ class _ProductlistState extends State<Productlist> {
     });
     if((isAdmin ?? false) == true){
       await _fetchProductsByCategory('0');
+      await checkNewNotificationforAdmin();
     }
     else
       {
@@ -829,7 +907,7 @@ class _ProductlistState extends State<Productlist> {
         }
         else
           {
-            showSnackBar('Stock unavailable.');
+            showSnackBar('This product is out of stock.');
           }
       }
       fetchCartItems();
@@ -886,6 +964,31 @@ class _ProductlistState extends State<Productlist> {
             isNewNotification = true;
           });
         }
+    } catch (e) {
+      print('Failed to mark notifications as read: $e');
+    }
+  }
+  Future<void> checkNewNotificationforAdmin() async {
+    try {
+      // Query to get all notifications where isRead is false for the given user
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('adminNotifications')
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        print('No unread notifications found.');
+        setState(() {
+          isNewNotificationOfAdmin = false;
+        });
+        return;
+      }
+      else
+      {
+        setState(() {
+          isNewNotificationOfAdmin = true;
+        });
+      }
     } catch (e) {
       print('Failed to mark notifications as read: $e');
     }

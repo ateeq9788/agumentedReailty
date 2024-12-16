@@ -8,6 +8,8 @@ class OrderData {
   final double tax;
   final double total;
   final DateTime? createdAt;
+  final String? status;
+  final String? cancelReason;
 
   OrderData({
     required this.userId,
@@ -17,6 +19,8 @@ class OrderData {
     required this.tax,
     required this.total,
     this.createdAt,
+    this.status,
+    this.cancelReason,
   });
 
   // Map<String, dynamic> toMap() {
@@ -52,6 +56,8 @@ class OrderData {
       'tax': tax,
       'total': total,
       'createdAt': Timestamp.fromDate(createdAt ?? DateTime.timestamp()),  // Convert DateTime to Firestore Timestamp
+      'status' : status,
+      'cancelReason' : cancelReason,
     };
   }
 
@@ -67,6 +73,8 @@ class OrderData {
       tax: map['tax']?.toDouble() ?? 0.0,
       total: map['total']?.toDouble() ?? 0.0,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      cancelReason: map['cancelReason'] ?? '',
+      status: map['status'] ?? ''
     );
   }
 }

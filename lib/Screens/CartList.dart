@@ -17,6 +17,7 @@ class CartList extends StatefulWidget {
 class _CartListState extends State<CartList> {
   List<Cartitem> cartItems = [];
   bool isLoading = true;
+  List<String> outOfStockProducts = [];
 
   @override
   void initState() {
@@ -304,20 +305,16 @@ class _CartListState extends State<CartList> {
                                         icon: Icon(Icons.remove),
                                         onPressed: () {
                                           setState(() {
-                                            if ((product.quantity ??
-                                                1) >
-                                                1) {
-                                              updateCartItemQty(
-                                                  product.id, false);
-                                              product.quantity =
-                                                  (product.quantity ??
-                                                      1) -
-                                                      1;
+                                            if ((product.quantity ?? 1) > 1) {
+                                              updateCartItemQty(product.id, false);
+                                              product.quantity = (product.quantity ?? 1) - 1;
+                                              if((product.quantity ?? 0) < (product.stock ?? 0)){
+                                                if(outOfStockProducts.contains(product.id)){
+                                                  outOfStockProducts.remove(product.id);
+                                                }
+                                              }
                                             } else {
-                                              _showConfirmationDialog(
-                                                  context,
-                                                  index,
-                                                  product.id,false);
+                                              _showConfirmationDialog(context, index, product.id, false);
                                             }
                                           });
                                         },
@@ -329,12 +326,13 @@ class _CartListState extends State<CartList> {
                                         onPressed: () {
                                           if((product.quantity ?? 0) < (product.stock ?? 0)){
                                             setState(() {
-                                              updateCartItemQty(
-                                                  product.id, true);
-                                              product.quantity =
-                                                  (product.quantity ??
-                                                      1) +
-                                                      1;
+                                              updateCartItemQty(product.id, true);
+                                              product.quantity = (product.quantity ?? 1) + 1;
+                                              if(((product.quantity ?? 0) == (product.stock ?? 0)) && ((product.quantity ?? 0) > 0)){
+                                                if (outOfStockProducts.contains(product.id) == false){
+                                                  outOfStockProducts.add(product.id);
+                                                }
+                                              }
                                             });
                                           }
                                           else
@@ -449,7 +447,7 @@ class _CartListState extends State<CartList> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    Checkoutscreen(userId: widget.userId)),
+                                    Checkoutscreen(userId: widget.userId,outOfStockProducts: outOfStockProducts,)),
                           );
                         },
                         child: Text('Proceed to Checkout',

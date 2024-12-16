@@ -8,7 +8,8 @@ import 'package:agumented_reality_shopping_store/CommonClasses/CartItem.dart';
 
 class Checkoutscreen extends StatefulWidget {
   final String userId;
-  Checkoutscreen({required this.userId});
+  final List<String> outOfStockProducts;
+  Checkoutscreen({required this.userId,required this.outOfStockProducts});
 
   @override
   State<Checkoutscreen> createState() => _CheckoutscreenState();
@@ -148,6 +149,11 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
                                 if ((product.quantity ?? 1) > 1) {
                                   updateCartItemQty(product.id, false);
                                   product.quantity = (product.quantity ?? 1) - 1;
+                                  if((product.quantity ?? 0) < (product.stock ?? 0)){
+                                    if(widget.outOfStockProducts.contains(product.id)){
+                                      widget.outOfStockProducts.remove(product.id);
+                                    }
+                                  }
                                 } else {
                                   _showConfirmationDialog(context, index, product.id, false);
                                 }
@@ -163,6 +169,11 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
                                 setState(() {
                                   updateCartItemQty(product.id, true);
                                   product.quantity = (product.quantity ?? 1) + 1;
+                                  if(((product.quantity ?? 0) == (product.stock ?? 0)) && ((product.quantity ?? 0) > 0)){
+                                     if (widget.outOfStockProducts.contains(product.id) == false){
+                                       widget.outOfStockProducts.add(product.id);
+                                     }
+                                  }
                                 });
                               }
                               else
@@ -308,12 +319,14 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
     double total = subtotal + tax;
 
     OrderData order = OrderData(
-      userId: widget.userId,
-      cartItems: cartItems,
-      subtotal: subtotal,
-      tax: tax,
-      total: total,
-      address: ''
+        userId: widget.userId,
+        cartItems: cartItems,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        address: address ?? '',
+        status: 'pending',
+        cancelReason: ''
     );
 
     try {
@@ -322,7 +335,30 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
           .collection('orders')
           .add(order.toMap());
 
-      // After order is placed, send notification
+      // Update the stock for each product
+      for (var item in cartItems) {
+        DocumentSnapshot productSnapshot = await FirebaseFirestore.instance
+            .collection('products')
+            .doc(item.id)
+            .get();
+
+        if (productSnapshot.exists) {
+          num currentStock = productSnapshot['stock'];
+          num newStock = currentStock - (item.quantity ?? 0);
+
+          if (newStock < 0) {
+            throw Exception(
+                'Product "${item.name}" is out of stock. Cannot complete the order.');
+          }
+
+          await FirebaseFirestore.instance
+              .collection('products')
+              .doc(item.id)
+              .update({'stock': newStock});
+        }
+      }
+
+      // Notify user about successful order placement
       await FirebaseFirestore.instance.collection('notifications').add({
         'userId': widget.userId,
         'message': 'Your order has been placed successfully. Order ID: ${orderRef.id}',
@@ -331,7 +367,33 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
         'address': address ?? "",
       });
 
-      // Remove each cart item after successful order placement
+      // Notify admin about new order
+      await FirebaseFirestore.instance.collection('adminNotifications').add({
+        'userId': widget.userId,
+        'message': 'New Order Placed. Order ID: ${orderRef.id}',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'orderId' : orderRef.id,
+        'address': address ?? "",
+        'status': 'pending',
+        'type': 'order',
+      });
+
+      // Notify admin about out-of-stock products
+      if (widget.outOfStockProducts.isNotEmpty) {
+        for (var productId in widget.outOfStockProducts) {
+          await FirebaseFirestore.instance.collection('adminNotifications').add({
+            'userId': widget.userId,
+            'message': 'Product "$productId" is out of stock.',
+            'timestamp': FieldValue.serverTimestamp(),
+            'isRead': false,
+            'productId': productId,
+            'type': 'stock',
+          });
+        }
+      }
+
+      // Remove cart items after successful order placement
       for (var item in cartItems) {
         await removeItemFromCartList(item.id);
       }
@@ -343,15 +405,16 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Your order has been processed successfully.'),
-          duration: Duration(seconds: 3),  // Time the snackbar is visible
+          duration: Duration(seconds: 3),
         ),
       );
+
       // Navigate back after checkout
       Navigator.pop(context);
       Navigator.pop(context);
     } catch (e) {
       setState(() {
-        isLoading = false; // Ensure loading is turned off in case of error
+        isLoading = false;
       });
 
       print("Failed to complete checkout: $e");
@@ -360,6 +423,8 @@ class _CheckoutscreenState extends State<Checkoutscreen> {
       );
     }
   }
+
+
   Widget _buildPaymentMethodSection() {
     return Card(
       color: Colors.white,
